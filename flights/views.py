@@ -1,18 +1,24 @@
 from rest_framework.generics import ListAPIView, RetrieveAPIView, RetrieveUpdateAPIView, DestroyAPIView, CreateAPIView
 from datetime import datetime
+from django.utils import timezone
 
 from .models import Flight, Booking
-from .serializers import FlightSerializer, BookingSerializer, BookingDetailsSerializer, UpdateBookingSerializer, RegisterSerializer
-
-
+from .serializers import (FlightSerializer, BookingSerializer,
+	BookingDetailsSerializer, UpdateBookingSerializer, AdminBookingUpdateSerializer,
+		UserBookingUpdateSerializer, RegisterSerializer )
 class FlightsList(ListAPIView):
 	queryset = Flight.objects.all()
 	serializer_class = FlightSerializer
 
-
 class BookingsList(ListAPIView):
-	queryset = Booking.objects.filter(date__gte=datetime.today())
+
 	serializer_class = BookingSerializer
+
+	def get_queryset(self):
+		queryset = Booking.objects.filter(
+			date__gte = timezone.now(), 
+			user = self.request.user )
+		return queryset
 
 
 class BookingDetails(RetrieveAPIView):
@@ -27,6 +33,13 @@ class UpdateBooking(RetrieveUpdateAPIView):
 	serializer_class = UpdateBookingSerializer
 	lookup_field = 'id'
 	lookup_url_kwarg = 'booking_id'
+
+	def get_serializer_class(self):
+		if self.request.user.is_staff:
+			serializer_class = AdminBookingUpdateSerializer
+		else:
+			serializer_class = UserBookingUpdateSerializer
+		return serializer_class
 
 
 class CancelBooking(DestroyAPIView):
